@@ -9,8 +9,7 @@ horas = [f"{h:02d}h" for h in range(24)]
 # Pasta de saída
 os.makedirs("checkout", exist_ok=True)
 
-# Data de referência (hoje)
-hoje = dt.date.today()
+ano_atual = dt.date.today().year
 
 # Função para gerar um DataFrame com valores aleatórios
 def gerar_dataframe():
@@ -27,9 +26,8 @@ def gerar_dataframe():
     return df
 
 # Gerar 30 dias de arquivos
-for i in range(30):
-    data_ref = hoje - dt.timedelta(days=i)
-    nome_arquivo = f"checkout_{data_ref.strftime('%d%m%Y')}.csv"
+for i in range(3,13):
+    nome_arquivo = f"checkout_{i}.csv"
     caminho = os.path.join("checkout", nome_arquivo)
     df = gerar_dataframe()
     df.to_csv(caminho, index=False)

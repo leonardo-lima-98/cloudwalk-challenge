@@ -4,15 +4,17 @@ import os
 import time
 import streamlit as st
 import pandas as pd
-from model import flag_pos_anomalies, csv_columns_validation, list_checkout_files
+from pathlib import Path
+from src.monitor_anomalies import flag_pos_anomalies
+from src.utils import csv_columns_validation, list_checkout_files, save_new_checkout_file
 
-UPLOAD_DIR = "data/checkout/"
+CHECKOUT_DIR = "data/checkout/"
 
-st.set_page_config(page_title="POS por hora", layout="wide", page_icon="📊", initial_sidebar_state="auto")
-st.title("🚦 Incident Monitor")
+st.set_page_config(page_title="Monitor de Anomalias", layout="wide", page_icon="📊", initial_sidebar_state="auto")
+st.title("📊 Monitor de Anomalias")
 
 # Lista inicial de arquivos
-files = list_checkout_files()
+files = list_checkout_files(CHECKOUT_DIR)
 if "file_index" not in st.session_state:
     st.session_state.file_index = 0  # começa no mais recente
 
@@ -27,30 +29,20 @@ with st.sidebar:
         )
 
         if uploaded:
-            filename = uploaded.name
-            save_path = os.path.join(UPLOAD_DIR, filename)
-
-            # Salva o arquivo no disco
-            with open(save_path, "wb") as f:
-                f.write(uploaded.getbuffer())
-
-            st.toast(f"📥 Arquivo salvo em `{save_path}`", icon="✅")
-
-            current_file = save_path
-            df = pd.read_csv(current_file)
+            save_path = save_new_checkout_file(uploaded, CHECKOUT_DIR)
+            df = pd.read_csv(save_path)
 
         else:
             # pega arquivo atual da lista
             current_file = files[st.session_state.file_index]
-            df = pd.read_csv(current_file)
+            df = pd.read_csv(Path(CHECKOUT_DIR,current_file))
 
         # Atualiza a lista após upload
-        files = list_checkout_files()
-        file_names = [os.path.basename(f) for f in files]
+        files = list_checkout_files(CHECKOUT_DIR)
 
         # Selectbox sincronizado com file_index
-        selected_name = st.selectbox("Escolha o arquivo de checkout:", file_names, index=st.session_state.file_index)
-        st.session_state.file_index = file_names.index(selected_name)
+        selected_name = st.selectbox("Escolha o arquivo de checkout:", files, index=st.session_state.file_index)
+        st.session_state.file_index = files.index(selected_name)
 
         st.divider()
 
@@ -63,7 +55,7 @@ with col1:
 
 with col2:
     st.markdown(
-        f"<h5 style='text-align: center;'>📄 Arquivo atual: {os.path.basename(current_file)}</h5>",
+        f"<h5 style='text-align: center;'>📄 Arquivo atual: {current_file}</h5>",
         unsafe_allow_html=True
     )
 
