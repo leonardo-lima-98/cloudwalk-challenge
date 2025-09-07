@@ -1,6 +1,7 @@
 import pandas as pd
+from pandas.io.formats.style import Styler
 
-def flag_pos_anomalies(df: pd.DataFrame) -> pd.DataFrame:
+def flag_pos_anomalies_line_chart(df: pd.DataFrame) -> pd.DataFrame:
     """
     Detecta possíveis anomalias nos dados de checkout com base em comparação estatística.
 
@@ -45,3 +46,44 @@ def flag_pos_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     df["anomaly_flag"] = df["zscore_today_vs_mean"].abs() >= 2
 
     return df
+
+
+def flag_pos_anomalies_dataframe(df: pd.DataFrame) -> Styler:
+    df = df.copy()
+
+    # Diferença entre o valor de hoje e a média do último mês
+    df["delta_vs_mean"] = df["today"] - df["avg_last_month"]
+
+    # Proxy de desvio padrão
+    df["std_proxy"] = (
+        df[["same_day_last_week", "avg_last_week", "avg_last_month"]]
+        .var(axis=1)
+        .clip(lower=1)
+        .pow(0.5)
+    )
+
+    # Z-score
+    df["zscore_today_vs_mean"] = df["delta_vs_mean"] / df["std_proxy"]
+
+    # Coluna de flag textual
+    def flag_text(z):
+        if z >= 2:
+            return "↑"   # seta pra cima
+        elif z <= -2:
+            return "↓"   # seta pra baixo
+        else:
+            return "-"
+    df["anomaly_flag"] = df["zscore_today_vs_mean"].apply(flag_text)
+
+    # --- Estilo para colorir a coluna ---
+    def highlight_anomaly(val):
+        if val == "↑":
+            return "background-color: lightgreen; color: black; font-weight: bold; text-align: center;"
+        elif val == "↓":
+            return "background-color: lightcoral; color: black; font-weight: bold; text-align: center;"
+        else:
+            return ""
+
+    styler = df.style.applymap(highlight_anomaly, subset=["anomaly_flag"])
+
+    return styler

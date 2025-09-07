@@ -107,3 +107,9 @@ O sistema utiliza a extensão do Streamlit `streamlit-autorefresh` para atualiza
 ###### ⚙️ Sidebar Customizavel
 
 Você pode modificar a visão dos dados apartir da legenda escolhida e o intervalo de tempo para uma analise mais especifica ou abrangente.
+
+---
+
+#### Nota Gerais
+
+No diretório `./data` tem arquivos para gerar mais dados dos arquivos de checkout e transactions. 

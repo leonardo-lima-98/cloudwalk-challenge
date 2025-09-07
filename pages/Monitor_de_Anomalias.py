@@ -2,7 +2,7 @@ import time
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from src.monitor_anomalies import flag_pos_anomalies
+from src.monitor_anomalies import flag_pos_anomalies_line_chart, flag_pos_anomalies_dataframe
 from src.utils import csv_columns_validation, list_checkout_files, save_new_checkout_file
 
 # --------------------------
@@ -79,15 +79,16 @@ st.divider()
 
 # Validação + KPIs + gráfico
 if csv_columns_validation(df):
-    df = flag_pos_anomalies(df)
+    df_line_chart = flag_pos_anomalies_line_chart(df)
+    df_dataframe = flag_pos_anomalies_dataframe(df)
 
     kpi1, kpi2, kpi3 = st.columns(3)
-    kpi1.metric("Horas com anomalia", int(df["anomaly_flag"].sum()))
-    kpi2.metric("Maior z-score", round(df["zscore_today_vs_mean"].abs().max(), 2))
-    kpi3.metric("Δ máximo (Hoje - Média)", int(df["delta_vs_mean"].max()))
+    kpi1.metric("Horas com anomalia", int(df_line_chart["anomaly_flag"].sum()))
+    kpi2.metric("Maior z-score", round(df_line_chart["zscore_today_vs_mean"].abs().max(), 2))
+    kpi3.metric("Δ máximo (Hoje - Média)", int(df_line_chart["delta_vs_mean"].max()))
 
-    st.line_chart(df.set_index("time")[["avg_last_month", "today"]])
+    st.line_chart(df_line_chart.set_index("time")[["avg_last_month", "today"]])
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df_dataframe, use_container_width=True, hide_index=True)
 
     st.caption("Regra: |z-score| ≥ 2 marca anomalia. O z-score é calculado vs média histórica por hora.")
