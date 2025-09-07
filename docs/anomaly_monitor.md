@@ -16,12 +16,11 @@ Cada linha do CSV contém:
 1. **Delta (diferença bruta)**  
    Calcula a diferença entre o valor de hoje e a média do último mês:
 
-
 2. **Desvio Padrão Proxy**  
-Em vez de usar apenas um desvio padrão global, criamos um **proxy** com base na variância de três séries:
-- mesmo dia da semana passada  
-- média da última semana  
-- média do último mês  
+Em vez de usar apenas um desvio padrão global, criando um **proxy** com base na variância de três séries:  
+-- mesmo dia da semana passada  
+-- média da última semana  
+-- média do último mês  
 
 Isso garante que a comparação seja mais realista.  
 Caso o desvio seja muito pequeno, fixamos o mínimo em `1` para evitar divisões por zero.

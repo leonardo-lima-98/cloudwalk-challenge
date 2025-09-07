@@ -1,6 +1,3 @@
-# pages/Incident_Monitor.py
-
-import os
 import time
 import streamlit as st
 import pandas as pd
@@ -8,16 +5,27 @@ from pathlib import Path
 from src.monitor_anomalies import flag_pos_anomalies
 from src.utils import csv_columns_validation, list_checkout_files, save_new_checkout_file
 
+# --------------------------
+# Variaveis de configuração inicial
+# --------------------------
 CHECKOUT_DIR = "data/checkout/"
 
+# --------------------------
+# Configuração da pagina
+# --------------------------
 st.set_page_config(page_title="Monitor de Anomalias", layout="wide", page_icon="📊", initial_sidebar_state="auto")
 st.title("📊 Monitor de Anomalias")
 
-# Lista inicial de arquivos
+# --------------------------
+# Configuração de sessions state
+# --------------------------
 files = list_checkout_files(CHECKOUT_DIR)
 if "file_index" not in st.session_state:
-    st.session_state.file_index = 0  # começa no mais recente
+    st.session_state.file_index = 0  
 
+# --------------------------
+# Sidebar
+# --------------------------
 with st.sidebar:
     with st.spinner("Loading..."):
         time.sleep(1.0)
@@ -47,6 +55,9 @@ with st.sidebar:
         st.divider()
 
 
+# --------------------------
+# Conteúdo principal
+# --------------------------
 # Navegação por setas
 col1, col2, col3 = st.columns([1, 10, 1])
 with col1:

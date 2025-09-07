@@ -1,13 +1,10 @@
 import streamlit as st
 import pandas as pd
-from pathlib import Path
 from src.db.db_utils import (
-    close_connection,
     init_db,
-    get_connection,
     populate_db_from_csv
 )
-from src.monitor_transactions import rolling_alert_recommendation
+from src.monitor_transactions import load_df
 from streamlit_autorefresh import st_autorefresh
 
 # --------------------------
@@ -23,13 +20,24 @@ query_path = "src/db/query.sql"
 # --------------------------
 init_db(db_path, schema_path)
 populate_db_from_csv(db_path, csv_path)
+sql_df, start_time, end_time = load_df(db_path, query_path)
 
 # --------------------------
 # Configuração da pagina
 # --------------------------
 st.set_page_config(page_title="Monitor de Transações", layout="wide", page_icon="🚦", initial_sidebar_state="auto")
 st.title("🚦 Monitor de Transações")
-autorefresh = st_autorefresh(interval=10000, limit=None, key="refresh")
+autorefresh = st_autorefresh(interval=5000, limit=None, key="refresh")
+
+# --------------------------
+# Configuração de sessions state
+# --------------------------
+options = ["approved","failed","denied","reversed","failure_rate"]
+if "columns" not in st.session_state:
+    st.session_state.columns = options
+
+if "current_time" not in st.session_state:
+    st.session_state.current_time = start_time
 
 # --------------------------
 # Sidebar
@@ -38,44 +46,35 @@ with st.sidebar:
     with st.spinner("Carregando parâmetros..."):
         st.subheader("Consulta SQL + gráfico e alerta em tempo real")
         st.divider()
-        options = ["approved","failed","denied","reversed","failure_rate"]
-        if "columns" not in st.session_state:
-            st.session_state.columns = ["approved"]
-
-        lookback_min = st.slider("Janela de baseline (min)", 15, 240, 60)
+        lookback_min = st.slider("Janela baseline (minutos)", min_value=1, max_value=240,
+                                 value=60, step=1, help="Janela de tempo que será exibida últimos minutos")
         selected = st.multiselect("Selecione os estados",options,
                                 default=st.session_state.columns)
         if len(selected) == 0:
             selected = st.session_state.columns
             st.warning("Você deve selecionar pelo menos um estado!")
         st.session_state.columns = selected
-try:
-    conn, cursor = get_connection(db_path)
-    query = Path(query_path).read_text()
-    sql_df = pd.read_sql_query(query, conn, parse_dates=["timestamp"])
-    close_connection(conn, cursor)
-    # sql_df = pd.read_csv(csv_path)
-except Exception as e:
-    st.toast(f"Erro ao executar consulta: {e}")
-    sql_df = None
 
 # --------------------------
 # Conteúdo principal
 # --------------------------
-if sql_df is None:
-    st.subheader("Execute a consulta SQL para visualizar os dados.")
-elif sql_df.empty:
-    st.error("A consulta SQL para visualizar os dados retornou vazio.")
-else:
-    # Calcula recomendação
-    sql_df_dated = rolling_alert_recommendation(
-        sql_df,
-        baseline_minutes=lookback_min
-    )
-    # Mostra gráfico com threshold
-    chart_df = sql_df_dated.set_index("timestamp")[selected]
+chart_container = st.container()
+table_container = st.container()
+# Filtra com base no current_time e baseline
+current_time = st.session_state.current_time
+start_recent = current_time - pd.Timedelta(minutes=lookback_min)
+filtered_df = sql_df[(sql_df["timestamp"] >= start_recent) & (sql_df["timestamp"] <= current_time)].copy()
+# Mostra o gráfico (se houver dados)
+chart_df = filtered_df.set_index("timestamp")[selected]
+with chart_container:
     st.line_chart(chart_df, use_container_width=True)
-
-    # Tabela
-    st.dataframe(sql_df_dated.sort_index(ascending=False), use_container_width=True, hide_index=True)
+# Mostra a tabela com a janela atual
+with table_container:
+    st.subheader("Dados na janela atual (ordenado desc.)")
+    st.dataframe(filtered_df.sort_values("timestamp", ascending=False), use_container_width=True)
+# avança a posição do tempo (se não chegou ao fim)
+if st.session_state.current_time < end_time:
+    st.session_state.current_time += pd.Timedelta(seconds=500)
+else:
+    st.session_state.current_time = start_time
 

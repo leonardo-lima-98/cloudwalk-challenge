@@ -1,73 +1,109 @@
-# 📦 Estrutura do projeto
+## 🚀 Guia de Instalação e Execução do Projeto
 
-```
-streamlit-incident-monitor/
-├─ app.py                    # App Streamlit com 2 abas
-├─ server.py                 # FastAPI: endpoint /ingest para monitoramento
-├─ model.py                  # Funções de detecção de anomalia (regra + z-score)
-├─ schema.sql                # Consultas SQL úteis
-├─ requirements.txt          # Dependências
-├─ README.md                 # Como rodar e como apresentar
-└─ sample_data/
-   ├─ pos_hourly.csv         # Exemplo de POS por hora (use o seu CSV real)
-   └─ seed_transactions.py   # Script opcional para popular SQLite com eventos
-```
+Este documento descreve os passos necessários para configurar, instalar e executar o projeto **Monitor de Transações em Tempo Real**.
 
----
+#### 📦 Pré-requisitos
 
-# README.md
+Antes de iniciar, certifique-se de ter os seguintes componentes instalados:
 
-```md
-# Incident Monitor – Streamlit + FastAPI
+- [Python 3.11+](https://www.python.org/downloads/)
+- [pip](https://pip.pypa.io/en/stable/)
+- [Git](https://git-scm.com/)
 
-App para analisar comportamento anômalo em POS por hora e monitorar transações em tempo (quase) real com alertas.
-
-## 🚀 Como rodar
+#### 📥 Clonando o Repositório
 
 ```bash
-python -m venv .venv && source .venv/bin/activate  # (Windows: .venv\\Scripts\\activate)
+git clone https://github.com/leonardo-lima-98/cloudwalk-challenge.git
+cd cloudwalk-challenge
+```
+
+#### 🛠️ Configuração do Ambiente
+
+Crie um ambiente virtual (recomendado):
+
+```bash
+python -m venv venv
+source venv/bin/activate   # Linux/MacOS
+venv\Scripts\activate    # Windows (PowerShell)
+```
+
+Instale as dependências do projeto:
+
+```bash
 pip install -r requirements.txt
+```  
 
-# 1) subir a API
-uvicorn server:app --reload --port 8000
+<details>
+  <summary>📂 Ver estrutura do projeto</summary>
 
-# 2) subir o app Streamlit (em outro terminal)
-streamlit run app.py
-```
-
-## 🔌 Envio de eventos (exemplos)
-
-```bash
-# Aprovada
-curl -X POST http://localhost:8000/ingest -H 'Content-Type: application/json' \
-  -d '{"ts":"2025-09-03T10:00:00","status":"approved","count":90}'
-
-# Falha
-curl -X POST http://localhost:8000/ingest -H 'Content-Type: application/json' \
-  -d '{"ts":"2025-09-03T10:00:00","status":"failed","count":30}'
-```
-
-A resposta da API inclui `recommend_alert` e os detalhes do cálculo (baseline vs janela recente e z-score).
-
-## 🧪 CSV de exemplo
-
-Colunas esperadas para POS: `hour, sales_today, sales_yesterday, avg_other_days`.
-Use seu CSV real, ou comece com `sample_data/pos_hourly.csv`.
-
-## 🧠 Como determinamos anomalias
-
-- **POS por hora**: z-score por hora (|z| ≥ 2) entre hoje e a média histórica.
-- **Transações**: taxa de falha por minuto. Comparamos a média da janela recente (ex.: 5 min) contra o baseline (ex.: 60 min) e alertamos se ultrapassar `μ + σ*k` (k configurável).
-
-## 📈 SQL principal
-
-Veja `schema.sql`. A consulta agrega por minuto e calcula `failure_rate = failed / total`.
-
-## 📝 Dicas para a apresentação
-
-- Mostre a aba 1 destacando as horas com `anomaly_flag=True` e explique hipóteses (picos de almoço, quedas por instabilidade no PDV etc.).
-- Na aba 2, rode a consulta, exiba o gráfico e clique em **Executar** para mostrar a recomendação de alerta.
-- Ajuste as janelas e `sigma` ao vivo para demonstrar sensibilidade do monitor.
-```
+  ```
+  📦 projeto-monitor-transacoes
+  ┣ 📂 data/                           # Dados simulados
+  ┃ ┣ 📂 checkout/                     # Arquivos de checkout simulados
+  ┃ ┃ ┣ 📜 checkout_1.csv
+  ┃ ┃ ┗ 📜 checkout_2.csv
+  ┃ ┣ 📂 transactions/
+  ┃ ┃ ┣ 📜 seed_checkout.py
+  ┃ ┃ ┗ 📜 seed_transactions.py
+  ┣ 📂 docs/                           # Documentação
+  ┃ ┣ 📜 anomaly_monitor.md
+  ┃ ┗ 📜 transacoes_monitor.md
+  ┣ 📂 pages/                          # Páginas extras do Streamlit
+  ┃ ┣ 📜 Monitor_de_Anomalias.py
+  ┃ ┗ 📜 Monitor_de_Transacoes.py
+  ┣ 📂 src/                            # Código-fonte principal
+  ┃ ┣ 📂 db/                           # Banco e utilitários
+  ┃ ┃ ┣ 📜 db_utils.py
+  ┃ ┃ ┣ 📜 monitor.db                  # Banco de dados SQLite
+  ┃ ┃ ┣ 📜 query.sql                   # Query principal de agregação
+  ┃ ┃ ┗ 📜 schema.sql                  # Script de criação de schema
+  ┃ ┣ 📜 monitor_anomalies.py
+  ┃ ┣ 📜 monitor_transactions.py
+  ┃ ┗ 📜 utils.py
+  ┣ 📜 Home.py                         # Página inicial do Streamlit
+  ┣ 📜 README.md                       # Guia do projeto
+  ┗ 📜 requirements.txt                # Dependências do Python
+  ```
+</details>  
 
 ---
+
+#### ▶️ Executando o Projeto
+
+Para iniciar a aplicação Streamlit, execute:
+
+```bash
+streamlit run Home.py
+```
+
+A aplicação ficará disponível em:  
+👉 http://localhost:8501
+
+- A página inicial é `Home.py` podendo consultar toda documentação do projeto  
+- As principais páginas (como `Monitor_de_Transacoes.py` e `Monitor_de_Anomalias.py`) ficam acessíveis no menu lateral do Streamlit.
+
+#### Monitor_de_Anomalias.py
+```
+Nessa sessão podemos analisar os arquivos .csv de checkout. Considerando a numeração final como sendo os meses do ano podendo importar mais arquivos e analisa-los.
+```
+##### Funcionalidades:
+###### ⬆️ Importe de Arquivos
+
+A biblioteca Streamlit forneçe nativamente a sessão de carregamento dos arquivos podendo ser salvo no lake de dados.
+
+###### 📈 Graficos de Exibição
+
+Com o gráfico de linhas podemos ter uma visão do dados díarios com a referencia de média e o grafico de tabela sinaliza qual horario foi detectado uma anomalia.  
+
+#### Monitor_de_Transacoes.py
+```
+Nessa sessão podemos analisar os arquivos .csv de transactions. A simulação de analise em tempo real consultando dos dados populados em um banco de dados.
+```
+##### Funcionalidades:
+###### 🔄 Atualização Automática
+
+O sistema utiliza a extensão do Streamlit `streamlit-autorefresh` para atualizar os dados a cada **5 segundos**, simulando um fluxo contínuo de transações.
+
+###### ⚙️ Sidebar Customizavel
+
+Você pode modificar a visão dos dados apartir da legenda escolhida e o intervalo de tempo para uma analise mais especifica ou abrangente.
